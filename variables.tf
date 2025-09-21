@@ -56,7 +56,7 @@ variable "subnet_cidr" {
 variable "admin_username" {
   description = "Admin username for the VMs."
   type        = string
-  default     = "adm"
+  default     = "infra-adm"
 }
 
 variable "ssh_public_key" {
