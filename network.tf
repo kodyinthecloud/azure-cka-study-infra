@@ -16,16 +16,67 @@ resource "azurerm_subnet" "this" {
   address_prefixes     = [var.subnet_cidr]
 }
 
-# Simple guard: fail early if we have neither subnet_id nor create_network=true
-resource "null_resource" "assert_subnet_present" {
-  triggers = {
-    subnet_present = tostring(local.effective_subnet_id != null)
-  }
+# Network Security Group
+resource "azurerm_network_security_group" "this" {
+  count               = var.create_network ? 1 : 0
+  name                = "${var.subnet_name}-nsg"
+  location            = var.location
+  resource_group_name = var.resource_group_name
+  tags                = var.tags
+}
 
-  lifecycle {
-    precondition {
-      condition     = local.effective_subnet_id != null
-      error_message = "No subnet to deploy into. Provide var.subnet_id or set create_network=true."
-    }
-  }
+# Rule 1: Allow inbound SSH (22) from your public IP
+
+resource "azurerm_network_security_rule" "ssh_from_myip" {
+  count                       = var.create_network ? 1 : 0
+  name                        = "Allow-SSH-MyIP"
+  priority                    = 100
+  direction                   = "Inbound"
+  access                      = "Allow"
+  protocol                    = "Tcp"
+  source_port_range           = "*"
+  destination_port_range      = "22"
+  source_address_prefix       = var.my_ip
+  destination_address_prefix  = "*"
+  resource_group_name         = var.resource_group_name
+  network_security_group_name = azurerm_network_security_group.this[0].name
+}
+
+# Rule 2: Allow all VNet-to-VNet traffic
+resource "azurerm_network_security_rule" "intra_vnet" {
+  count                       = var.create_network ? 1 : 0
+  name                        = "Allow-IntraVNet"
+  priority                    = 200
+  direction                   = "Inbound"
+  access                      = "Allow"
+  protocol                    = "*"
+  source_port_range           = "*"
+  destination_port_range      = "*"
+  source_address_prefix       = "VirtualNetwork"
+  destination_address_prefix  = "VirtualNetwork"
+  resource_group_name         = var.resource_group_name
+  network_security_group_name = azurerm_network_security_group.this[0].name
+}
+
+# Rule 3: Allow all outbound traffic
+resource "azurerm_network_security_rule" "allow_all_outbound" {
+  count                       = var.create_network ? 1 : 0
+  name                        = "Allow-All-Outbound"
+  priority                    = 300
+  direction                   = "Outbound"
+  access                      = "Allow"
+  protocol                    = "*"
+  source_port_range           = "*"
+  destination_port_range      = "*"
+  source_address_prefix       = "*"
+  destination_address_prefix  = "*"
+  resource_group_name         = var.resource_group_name
+  network_security_group_name = azurerm_network_security_group.this[0].name
+}
+
+# Associate NSG to the subnet
+resource "azurerm_subnet_network_security_group_association" "this" {
+  count                     = var.create_network ? 1 : 0
+  subnet_id                 = azurerm_subnet.this[0].id
+  network_security_group_id = azurerm_network_security_group.this[0].id
 }
