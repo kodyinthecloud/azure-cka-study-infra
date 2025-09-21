@@ -12,7 +12,9 @@ variable "subnet_id" {
   type        = string
   default     = null
 }
-
+variable "my_ip" {
+  default = ""
+}
 variable "create_network" {
   description = "If true, create a VNet/Subnet to deploy into."
   type        = bool
