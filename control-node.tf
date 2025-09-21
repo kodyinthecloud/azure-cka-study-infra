@@ -66,15 +66,5 @@ resource "azurerm_virtual_machine_run_command" "control" {
     script = file("${path.module}/scripts/bootstrap.sh")
   }
 
-  # Pass env vars to the script (optional)
-  protected_parameter {
-    name  = "environmentVariables"
-    value = jsonencode([
-      for k, v in var.control_script_env : {
-        name  = k
-        value = v
-      }
-    ])
-  }
   tags               = var.tags
 }
