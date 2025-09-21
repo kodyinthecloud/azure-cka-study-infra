@@ -121,7 +121,7 @@ variable "control_public_ip" {
 variable "service_public_ip" {
   description = "Whether to assign public IPs to service nodes."
   type        = bool
-  default     = false
+  default     = true
 }
 
 ############################################

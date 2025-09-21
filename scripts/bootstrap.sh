@@ -1,33 +1,39 @@
 #!/bin/bash
-set -e
+ set -e
+ export DEBIAN_FRONTEND=noninteractive
 
-# Pick the Kubernetes MINOR branch you want (for example 1.30 or 1.34).
-VERSION="1.30"
+ # Pick the Kubernetes MINOR branch you want (for example 1.30 or 1.34).
+ VERSION="1.30"
 
-# Install ContainerD
-sudo apt-get install -y containerd
+ # Init apt and prereqs
+ sudo rm -rf /var/lib/apt/lists/* || true
+ sudo mkdir -p /var/lib/apt/lists/partial
+ sudo apt-get update -y
+ sudo apt-get install -y ca-certificates curl gpg apt-transport-https
 
-# Enable and start containerd
-sudo systemctl enable --now containerd
+ # Install containerd (Ubuntu repo first, then fallback to Docker repo if missing)
+ if ! sudo apt-get install -y containerd; then
+   sudo install -m 0755 -d /etc/apt/keyrings
+   curl -fsSL https://download.docker.com/linux/ubuntu/gpg \
+     | sudo gpg --batch --yes --dearmor -o /etc/apt/keyrings/docker.gpg
+   echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.gpg] \
+ https://download.docker.com/linux/ubuntu $(. /etc/os-release; echo $UBUNTU_CODENAME) stable" \
+     | sudo tee /etc/apt/sources.list.d/docker.list >/dev/null
+   sudo apt-get update -y
+   sudo apt-get install -y containerd.io
+ fi
+ sudo systemctl enable --now containerd
 
-# Make sure the keyrings directory exists.
-sudo mkdir -p /etc/apt/keyrings
+ # Kubernetes apt repo
+ sudo mkdir -p /etc/apt/keyrings
+ curl -fsSL "https://pkgs.k8s.io/core:/stable:/v${VERSION}/deb/Release.key" \
+   | sudo gpg --batch --yes --dearmor -o /etc/apt/keyrings/kubernetes-apt-keyring.gpg
+ sudo chmod 0644 /etc/apt/keyrings/kubernetes-apt-keyring.gpg
 
-# Download the repo signing key and store it in the keyrings folder.
-curl -fsSL "https://pkgs.k8s.io/core:/stable:/v${VERSION}/deb/Release.key" \
-  | sudo gpg --dearmor -o /etc/apt/keyrings/kubernetes-apt-keyring.gpg
-sudo chmod 644 /etc/apt/keyrings/kubernetes-apt-keyring.gpg
+ echo "deb [signed-by=/etc/apt/keyrings/kubernetes-apt-keyring.gpg] https://pkgs.k8s.io/core:/stable:/v${VERSION}/deb/ /" \
+   | sudo tee /etc/apt/sources.list.d/kubernetes.list >/dev/null
+ sudo chmod 0644 /etc/apt/sources.list.d/kubernetes.list
 
-# Add the Kubernetes APT repository for the chosen minor branch.
-echo "deb [signed-by=/etc/apt/keyrings/kubernetes-apt-keyring.gpg] https://pkgs.k8s.io/core:/stable:/v${VERSION}/deb/ /" \
-  | sudo tee /etc/apt/sources.list.d/kubernetes.list
-sudo chmod 644 /etc/apt/sources.list.d/kubernetes.list
-
-# Refresh package lists so the new repo is recognized.
-apt-get update -y
-
-# Install the Kubernetes components.
-apt-get install -y kubelet kubeadm kubectl
-
-# Prevent unintended upgrades of these packages (and containerd if present).
-apt-mark hold kubelet kubeadm kubectl containerd
+ sudo apt-get update -y
+ sudo apt-get install -y kubelet kubeadm kubectl
+ sudo apt-mark hold kubelet kubeadm kubectl containerd containerd.io || true
