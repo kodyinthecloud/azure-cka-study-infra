@@ -1,69 +1,107 @@
+############################################
+# Core
+############################################
 variable "resource_group_name" {
-  type = string
+  description = "Name of the Azure Resource Group to deploy into."
+  type        = string
 }
 
 variable "location" {
-  type = string
+  description = "Azure region short name (e.g., eastus, westus2)."
+  type        = string
 }
 
-# Networking — either provide an existing subnet_id, or set create_network = true.
-variable "subnet_id" {
-  description = "Existing subnet ID to place NICs in. If null, set create_network=true."
-  type        = string
-  default     = null
-}
-variable "my_ip" {
-  default = ""
-}
+############################################
+# Networking
+############################################
 variable "create_network" {
-  description = "If true, create a VNet/Subnet to deploy into."
+  description = "If true, create a VNet/Subnet; if false, an existing subnet_id must be provided."
   type        = bool
   default     = false
 }
 
+variable "subnet_id" {
+  description = "Existing subnet ID to place NICs in. Set to null if create_network = true."
+  type        = string
+  default     = null
+}
+
 variable "vnet_name" {
-  type    = string
-  default = "vnet-azvms"
+  description = "Name for the VNet (used only when create_network = true)."
+  type        = string
+  default     = "vnet-azvms"
 }
 
 variable "vnet_cidr" {
-  type    = string
-  default = "10.42.0.0/16"
+  description = "CIDR for the VNet (used only when create_network = true)."
+  type        = string
+  default     = "10.42.0.0/16"
 }
 
 variable "subnet_name" {
-  type    = string
-  default = "subnet-azvms"
+  description = "Name for the Subnet (used only when create_network = true)."
+  type        = string
+  default     = "subnet-azvms"
 }
 
 variable "subnet_cidr" {
-  type    = string
-  default = "10.42.1.0/24"
+  description = "CIDR for the Subnet (used only when create_network = true)."
+  type        = string
+  default     = "10.42.1.0/24"
 }
 
-# Auth
+############################################
+# Access / Auth
+############################################
 variable "admin_username" {
-  type = string
+  description = "Admin username for the VMs."
+  type        = string
+  default     = "adm"
 }
 
 variable "ssh_public_key" {
-  type = string
+  description = "OpenSSH-formatted public key used for admin access."
+  type        = string
 }
 
-# Sizes
+variable "my_ip" {
+  description = "Optional public IPv4 address of the operator (used for allow-listing). Leave empty to skip."
+  type        = string
+
+}
+
+variable "tenant_id" {
+  description = "Azure AD tenant ID (UUID). Leave empty to ignore."
+  type        = string
+
+}
+
+variable "subscription_id" {
+  description = "Azure subscription ID (UUID). Leave empty to ignore."
+  type        = string
+
+}
+
+############################################
+# Compute Sizing
+############################################
 variable "control_vm_size" {
-  type    = string
-  default = "Standard_B2s"
+  description = "Azure VM size for the control node."
+  type        = string
+  default     = "Standard_B2s"
 }
 
 variable "service_vm_size" {
-  type    = string
-  default = "Standard_B2s"
+  description = "Azure VM size for service nodes."
+  type        = string
+  default     = "Standard_B2s"
 }
 
-# Service set; default to two service nodes
+############################################
+# Node Set
+############################################
 variable "service_nodes" {
-  description = "Map of service node names -> optional metadata."
+  description = "Map of service node names to optional metadata."
   type        = map(object({}))
   default     = {
     service-1 = {}
@@ -71,20 +109,26 @@ variable "service_nodes" {
   }
 }
 
-# Public IPs
+############################################
+# Public IP Allocation
+############################################
 variable "control_public_ip" {
-  type    = bool
-  default = true
+  description = "Whether to assign a public IP to the control node."
+  type        = bool
+  default     = true
 }
 
 variable "service_public_ip" {
-  type    = bool
-  default = false
+  description = "Whether to assign public IPs to service nodes."
+  type        = bool
+  default     = false
 }
 
-# Image
+############################################
+# Image (Ubuntu default)
+############################################
 variable "image" {
-  description = "Ubuntu image reference."
+  description = "Marketplace image reference for the VMs."
   type = object({
     publisher = string
     offer     = string
@@ -99,7 +143,9 @@ variable "image" {
   }
 }
 
-# Script args (optional) to pass into the embedded scripts via env
+############################################
+# Script Arguments (optional)
+############################################
 variable "control_script_env" {
   description = "Map of env vars passed to the control run command."
   type        = map(string)
@@ -112,8 +158,11 @@ variable "service_script_env" {
   default     = {}
 }
 
-# Common tags
+############################################
+# Tags
+############################################
 variable "tags" {
-  type    = map(string)
-  default = {}
+  description = "Common resource tags."
+  type        = map(string)
+  default     = {}
 }
