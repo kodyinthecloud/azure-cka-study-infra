@@ -1,3 +1,5 @@
+![Screenshot](logo.jpeg)
+
 # azure-cka-study-infra · Azure VM cluster module 
 
 ![Terraform](https://img.shields.io/badge/Terraform-%E2%89%A5%201.5-623CE4?logo=terraform)
