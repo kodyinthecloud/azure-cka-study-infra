@@ -1,4 +1,4 @@
-![Screenshot](logo.jpeg)
+![Screenshot](azure-cka-study-infra.jpg)
 
 # azure-cka-study-infra · Azure VM cluster module 
 
